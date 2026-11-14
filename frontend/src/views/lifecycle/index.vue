@@ -70,7 +70,7 @@ import { request } from '@/api/client'
 type Row = Record<string, string | number | null>
 
 const ENDPOINT = '/api/lifecycle'
-const columns = ["策略编号", "表名称", "创建日期", "保留天数", "归档路径", "清理方式", "最后操作", "策略状态"]
+const columns = ["策略编号", "表名称", "创建日期", "保留天数", "规范保留天数", "归档路径", "清理方式", "最后操作", "策略状态"]
 const actions = ["启用策略", "归档表", "删除表"]
 const statuses = ["草稿", "生效中", "已到期", "已归档"]
 const stats = [{"label": "生命周期策略总数", "value": 0}, {"label": "生效中策略", "value": 0}, {"label": "已到期策略", "value": 0}]

@@ -17,7 +17,12 @@
 ├── backend/                  FastAPI（Python） 后端
 │   ├── app/routers/          每个业务模块一组接口
 │   ├── app/services/         业务规则与状态流转
-│   └── app/store.py          内存数据仓库与示例数据
+│   ├── app/store.py          内存数据仓库与示例数据
+│   ├── app/retention_*.py    强类型保留模型（领域/存储/迁移/装配）
+│   ├── app/legacy_data.py    本地开发兼容样例（迁移前脏数据形态）
+│   ├── scripts/              存量规则迁移命令行工具
+│   ├── tests/                规范化/幂等/并发/跨模块/行为测试
+│   └── MIGRATION.md          迁移说明与上线/回退手册
 ├── .gitignore
 └── docker-compose.yml
 ```
@@ -72,6 +77,20 @@ npm run dev
   `backend/app/routers/<模块>.py`，业务规则在 `backend/app/services/<模块>.py`。
 - 列表接口统一返回 `{ items, total, page, size }`，动作接口统一返回 `{ ok, message }`。
 - 状态流转只允许在 `app/services` 里改，路由层不做业务判断。
+
+## 数据保留策略强类型迁移
+
+历史保留规则的期限/动作/依据是任意字符串（`30天` 与 `1个月` 并存），已迁移为
+强类型模型（整数保留天数、动作枚举、独立依据版本），原值完整保留在快照中，
+无法识别的值进入待处理台账而非静默丢弃；迁移幂等、并发只允许首次成功、可回退。
+完整口径、分批上线与回退步骤见 [`backend/MIGRATION.md`](backend/MIGRATION.md)。
+
+```bash
+make migrate-rehearse   # 隔离环境演练（临时库 + 幂等校验）
+make migrate-init       # 数据库结构演练
+make migrate-run        # 分批回填上线
+make test               # 后端单测 + 前端构建
+```
 
 领域：数据工程
 子方向：数仓与数据湖

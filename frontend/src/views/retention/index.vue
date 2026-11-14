@@ -18,6 +18,21 @@
       </article>
     </div>
 
+    <div v-if="migration.available" class="migration-banner" data-testid="migration-banner">
+      <span>强类型迁移：已规范化 <strong>{{ migration.migrated }}</strong> 条 · 待处理 <strong>{{ migration.pending }}</strong> 条 · 批次 {{ migration.batches }}</span>
+      <button class="link" type="button" @click="loadPending">查看待处理结果</button>
+    </div>
+
+    <div v-if="pendingRows.length" class="pending-panel" data-testid="pending-panel">
+      <h3>待处理规则（原值已保留，需人工复核，未静默丢弃）</h3>
+      <ul>
+        <li v-for="item in pendingRows" :key="String(item['规则编号'])">
+          <strong>{{ item['规则编号'] }}</strong>
+          <span v-for="reason in item['待处理原因']" :key="reason" class="pending-reason">{{ reason }}</span>
+        </li>
+      </ul>
+    </div>
+
     <form class="filter-bar" @submit.prevent="reload">
       <label v-for="field in filterFields" :key="field" class="filter-item">
         <span>{{ field }}</span>
@@ -70,7 +85,8 @@ import { request } from '@/api/client'
 type Row = Record<string, string | number | null>
 
 const ENDPOINT = '/api/retention'
-const columns = ["规则编号", "数据集范围", "保留期限", "过期动作", "例外清单", "合规依据", "执行周期", "规则状态"]
+// 强类型列优先，旧口径列（保留期限/过期动作）仍保留，兼容迁移期查看与导出。
+const columns = ["规则编号", "数据集范围", "规范保留天数", "规范期限", "规范过期动作", "例外清单", "合规依据", "依据版本", "执行周期", "迁移状态", "规则状态"]
 const actions = ["启用规则", "废止规则", "归档规则"]
 const statuses = ["草稿", "生效中", "已到期", "已废止"]
 const stats = [{"label": "保留规则总数", "value": 0}, {"label": "生效中规则", "value": 0}, {"label": "已到期规则", "value": 0}]
@@ -79,7 +95,32 @@ const rows = ref<Row[]>([])
 const total = ref(0)
 const errorMessage = ref('')
 const filters = ref<Record<string, string>>({})
-const filterFields = columns.slice(0, 3)
+const filterFields = ["规则编号", "数据集范围", "迁移状态"]
+const migration = ref<Record<string, boolean | number | string | null>>({ available: false, migrated: 0, pending: 0, batches: 0 })
+const pendingRows = ref<Array<Record<string, unknown>>>([])
+
+async function loadMigration() {
+  try {
+    const response = await request(`${ENDPOINT}/migration/status`)
+    if (response.ok) {
+      migration.value = await response.json()
+    }
+  } catch {
+    // 存储不可用时后端回退内存仓库，迁移面板不展示即可，不影响列表。
+  }
+}
+
+async function loadPending() {
+  try {
+    const response = await request(`${ENDPOINT}/migration/pending`)
+    if (response.ok) {
+      const payload = await response.json()
+      pendingRows.value = payload.items ?? []
+    }
+  } catch {
+    errorMessage.value = '待处理结果读取失败'
+  }
+}
 
 function resetFilters() {
   filters.value = {}
@@ -126,5 +167,48 @@ async function reload() {
   }
 }
 
-onMounted(reload)
+onMounted(() => {
+  void reload()
+  void loadMigration()
+})
 </script>
+
+<style scoped>
+.migration-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  margin-bottom: 12px;
+  border: 1px solid var(--border-color, #d9d9d9);
+  border-radius: 8px;
+  background: #f0f7ff;
+  font-size: 13px;
+}
+
+.pending-panel {
+  padding: 12px 14px;
+  margin-bottom: 12px;
+  border: 1px solid #f0c36d;
+  border-radius: 8px;
+  background: #fff8ec;
+}
+
+.pending-panel h3 {
+  margin: 0 0 8px;
+  font-size: 14px;
+}
+
+.pending-panel li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 6px;
+  font-size: 13px;
+}
+
+.pending-reason {
+  color: #b26a00;
+}
+</style>

@@ -70,7 +70,7 @@ import { request } from '@/api/client'
 type Row = Record<string, string | number | null>
 
 const ENDPOINT = '/api/recycle'
-const columns = ["记录编号", "表名称", "删除时间", "回收原因", "数据大小", "可恢复期", "恢复状态", "清理时间"]
+const columns = ["记录编号", "表名称", "删除时间", "回收原因", "数据大小", "可恢复期", "规范可恢复期天数", "关联规则编号", "规则状态", "恢复状态", "清理时间"]
 const actions = ["恢复数据", "永久清理", "延期保留"]
 const statuses = ["待恢复", "已恢复", "已清理", "已过期"]
 const stats = [{"label": "回收记录总数", "value": 0}, {"label": "待恢复记录", "value": 0}, {"label": "已清理记录", "value": 0}]

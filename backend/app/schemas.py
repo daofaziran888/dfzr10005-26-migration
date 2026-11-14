@@ -28,6 +28,36 @@ class EntryPayload(BaseModel):
     remark: str | None = None
 
 
+class TypedRetentionRule(BaseModel):
+    """强类型保留规则：期限、动作、依据版本均为可比较/可枚举的强类型字段。"""
+
+    id: int | None = None
+    rule_no: str = Field(..., description="规则编号，唯一")
+    dataset_scope: str = Field(..., description="数据集范围")
+    retention_days: int | None = Field(None, description="规范化后的整数保留天数")
+    duration_value: int | None = None
+    duration_unit: str | None = Field(None, description="DAY/WEEK/MONTH/QUARTER/YEAR")
+    expire_action: str | None = Field(None, description="DELETE/ARCHIVE/ANONYMIZE")
+    exceptions: list[str] = Field(default_factory=list)
+    compliance_ref: str | None = None
+    compliance_version: str | None = Field(None, description="合规依据独立版本号")
+    compliance_version_inferred: bool = False
+    execution_cycle: str | None = None
+    status: str
+    migration_status: str = Field(..., description="MIGRATED/PENDING/FAILED")
+    raw_snapshot: dict[str, Any] = Field(default_factory=dict, description="原值快照，用于追溯")
+
+
+class MigrationSummary(BaseModel):
+    """迁移结果汇总。"""
+
+    migrated: int = 0
+    pending: int = 0
+    failed: int = 0
+    lock_holder: str | None = None
+    batches: int = 0
+
+
 
 class LifecycleEntry(BaseModel):
     """生命周期策略明细结构。"""
